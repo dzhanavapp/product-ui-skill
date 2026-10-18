@@ -1,65 +1,52 @@
 # Стек и каркас
 
+Стек ниже — значение по умолчанию для нового проекта. Если у пользователя свой стек или проект уже существует,
+работай в нём; требования к качеству из SKILL.md не меняются.
+
+## По умолчанию
+React + TypeScript + Vite, Tailwind CSS v4, shadcn/ui, роутер (React Router или аналог), TanStack Query
+с сохранением кэша, lucide-react, sonner (уведомления). Шрифты — локально через @fontsource. Если у продукта
+есть внешние API с лимитами или секретами — свой серверный слой (Node/Express или аналог) для кэша и ключей.
+
 ## Структура
 ```
 project/
-  server/            # Node (Express 5, ESM) — API, кэш внешних сервисов, раздача web/dist
-  web/               # фронтенд (Vite + React + TS)
-    DESIGN.md        # дизайн-система — источник правды для агентов
+  server/        # API-прослойка: кэш внешних сервисов, секреты, раздача сборки (если нужен)
+  web/
+    DESIGN.md    # дизайн-система — источник правды
     src/
-      components/ui/ # shadcn
-      components/    # UI-кит продукта (media.tsx, layout.tsx, ...)
-      lib/           # api, хуки данных, хранилища, форматирование, wait.ts
-      pages/         # страницы (lazy)
-  shared/            # правила, общие для сервера и клиента (если есть)
-  tests/             # node:test
+      components/ui/   # shadcn
+      components/      # базовые компоненты продукта
+      lib/             # api, хуки данных, локальные хранилища, форматирование, ожидание
+      pages/           # экраны (ленивая загрузка)
+  tests/
   CLAUDE.md
 ```
-Если сервера нет (только фронтенд + публичные API) — всё равно заведи прослойку кэша (edge-функция/прокси), когда
-у API есть лимиты.
 
-## Команды создания фронтенда
-`shadcn create` в папке, где уже есть package.json, падает («не найден фреймворк») — создавай Vite вручную:
+## Создание фронтенда
+CLI shadcn не создаёт проект в папке, где уже есть свой `package.json` («не найден фреймворк»), и в интерактиве
+ждёт выбора пресета. Надёжный путь:
 ```bash
 npm create -y vite@latest web -- --template react-ts --no-interactive
 cd web && npm install && npm install tailwindcss @tailwindcss/vite @types/node
 ```
-`vite.config.ts`:
-```ts
-import path from 'node:path'
-import { defineConfig } from 'vite'
-import react from '@vitejs/plugin-react'
-import tailwindcss from '@tailwindcss/vite'
-const API = 'http://localhost:3210'
-export default defineConfig({
-  plugins: [react(), tailwindcss()],
-  resolve: { alias: { '@': path.resolve(__dirname, './src') } },
-  server: { proxy: { '/api': API } }
-})
-```
-В `tsconfig.json` и `tsconfig.app.json`: `compilerOptions.paths = { "@/*": ["./src/*"] }`. В `src/index.css` —
-`@import "tailwindcss";`. Затем (неинтерактивно, иначе CLI ждёт выбора пресета):
+`vite.config.ts`: плагины `react()` и `tailwindcss()`, алиас `@` → `./src`, прокси на API, если есть сервер.
+`tsconfig.json` и `tsconfig.app.json`: `paths: { "@/*": ["./src/*"] }`. `src/index.css`: `@import "tailwindcss";`.
 ```bash
-npx -y shadcn@latest init -b radix -p nova --pointer -y < /dev/null
-npx -y shadcn@latest add button badge card dialog drawer dropdown-menu input select tabs toggle-group tooltip \
-  skeleton slider scroll-area separator sonner switch progress label radio-group checkbox sheet popover command -y < /dev/null
-npm install react-router-dom @tanstack/react-query @tanstack/react-query-persist-client @tanstack/query-sync-storage-persister
-npm install @fontsource-variable/<шрифт-текста> @fontsource/<шрифт-заголовков>
+npx -y shadcn@latest init -b radix -p <пресет> -y < /dev/null
+npx -y shadcn@latest add <нужные компоненты> -y < /dev/null
 ```
-После `init` замени Geist (дефолт) на выбранные шрифты и перепиши токены — дефолтная серая тема shadcn = «шаблон».
+После инициализации замени шрифты и токены по дизайн-плану: тему shadcn по умолчанию узнают сразу.
 
 ## Обязательные настройки
-- `main.tsx`: `PersistQueryClientProvider` (см. data-and-caching.md), `TooltipProvider`, `Toaster`
-  (на телефоне `mobileOffset` над таб-баром), `ThemeProvider` (если одна тема — `forcedTheme`).
-- `App.tsx`: страницы через `lazy()` + `Suspense`; плеер/полноэкранные режимы — вне `Layout`.
-- Диалоги/шторки: русские `sr-only` подписи кнопок закрытия (в shadcn по умолчанию «Close»).
-- Сборка: `tsc -b && vite build`; агенты проверяют `npx tsc --noEmit -p tsconfig.app.json`, сборку делает лид.
+- Провайдер запросов с сохранением кэша (см. data-and-caching.md), провайдеры тултипов и уведомлений.
+- Экраны — через ленивую загрузку; полноэкранные режимы — вне общего каркаса, если так решено в плане.
+- Подписи `sr-only` в диалогах и шторках — на языке продукта (в shadcn по умолчанию «Close»).
+- Агенты проверяют типы (`tsc --noEmit`), полную сборку делает лид.
 
 ## Деплой (если нужен)
-- systemd-сервис от отдельного пользователя, nginx (для видео/стримов: `proxy_buffering off`, длинные таймауты),
-  certbot, ufw (только 22/80/443 + нужное), доступ к приватному репо — read-only deploy key.
-- Скрипт `deploy/setup.sh` идемпотентный: права на папку ДО `npm install`, `git safe.directory`, сборка, сервис,
-  nginx, сертификат, файрвол. Всё, что правилось на сервере руками, переноси в скрипт — иначе потеряется.
-- До публикации — вход по паролю/авторизация.
-- Россия: блокировки зарубежных API и трекеров, фильтрация TLS у региональных провайдеров; проверяй доступность
-  через check-host.net и предусматривай запасной вход (другой порт/прокси/российская «входная дверь»).
+- Сервис под отдельным пользователем, автозапуск, обратный прокси с HTTPS, файрвол — только нужные порты.
+- Скрипт развёртывания идемпотентный; всё, что настраивалось на сервере руками, переноси в скрипт.
+- До публикации — ограничение доступа.
+- Проверяй доступность продукта оттуда, где находятся пользователи (сервисы проверки из разных стран и сетей),
+  и заранее продумай запасной путь, если где-то соединения блокируются.
