@@ -1,0 +1,15 @@
+{
+  "name": "product-ui-skill",
+  "description": "Скиллы для Claude Code: построение отполированных веб-продуктов (UI/UX, дизайн-система, процесс с саб-агентами).",
+  "owner": {
+    "name": "dzhanavapp",
+    "url": "https://github.com/dzhanavapp"
+  },
+  "plugins": [
+    {
+      "name": "product-ui",
+      "source": "./",
+      "description": "Веб-приложение с нуля до отполированного продукта: дизайн-система, shadcn/ui, кэш, саб-агенты с ревью."
+    }
+  ]
+}

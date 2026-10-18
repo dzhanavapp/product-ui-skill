@@ -1,0 +1,10 @@
+{
+  "name": "product-ui",
+  "version": "1.0.0",
+  "description": "Скилл для Claude Code: веб-приложение с нуля до отполированного продукта — дизайн-система, shadcn/ui, кэш, оптимистичные обновления, живые тексты ожидания, команда саб-агентов с ревью и визуальной проверкой.",
+  "author": { "name": "dzhanavapp", "url": "https://github.com/dzhanavapp" },
+  "homepage": "https://github.com/dzhanavapp/product-ui-skill",
+  "repository": "https://github.com/dzhanavapp/product-ui-skill",
+  "license": "MIT",
+  "keywords": ["skill", "ui", "ux", "design-system", "shadcn", "react", "tailwind"]
+}
